@@ -1,0 +1,6 @@
+{
+  "name": "Life U",
+  "description": "An intelligent student companion and study planner application featuring an AI study companion, task and timetable managers, and financial tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
