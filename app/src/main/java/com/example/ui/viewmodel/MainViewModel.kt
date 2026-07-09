@@ -77,6 +77,8 @@ data class ChatMessage(
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val prefs = application.getSharedPreferences("lifeu_prefs", Context.MODE_PRIVATE)
+
     private val database = AppDatabase.getDatabase(application)
     private val repository = SyncedStudyRepository(
         database.taskDao(),
@@ -152,6 +154,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     monthlyIncome = user.monthlyIncome
                     monthlyBudgetLimit = user.monthlyBudgetLimit
                     
+                    persistAuthState(repository.getAuthToken() ?: "", actualEmail)
+                    
                     // Trigger sync
                     syncData()
                     
@@ -190,6 +194,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 deansListProgress = 0f
                 monthlyIncome = 0.0
                 monthlyBudgetLimit = 0.0
+
+                persistAuthState(response.token, email)
 
                 // Sync the initial profile (including Uni/Faculty) to the server
                 try {
@@ -277,6 +283,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 monthlyIncome = localUser.monthlyIncome
                 monthlyBudgetLimit = localUser.monthlyBudgetLimit
 
+                persistAuthState(response.token, userEmail)
+
                 syncData()
                 navigateTo(AppScreen.Main)
             } catch (_: GetCredentialCancellationException) {
@@ -316,7 +324,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             forgotPasswordError = null
             forgotPasswordSuccess = null
             try {
-                val otp = (100000..999999).random().toString()
+                val otp = if (generatedOtp.isNotEmpty()) generatedOtp else (100000..999999).random().toString()
                 generatedOtp = otp
                 forgotPasswordEmail = email
 
@@ -336,12 +344,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     put("user_id", publicKey)
                     put("template_params", org.json.JSONObject().apply {
                         put("to_email", email)
+                        put("email", email)
+                        put("reply_to", email)
+                        put("from_name", "Life U")
                         put("otp_code", otp)
                         put("to_name", email.substringBefore("@"))
+                        put("message", "Your verification code is: $otp")
                     })
                 }
 
-                val client = okhttp3.OkHttpClient()
+                val client = okhttp3.OkHttpClient.Builder()
+                    .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                    .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                    .build()
                 val body = json.toString()
                     .toByteArray()
                     .let { bytes ->
@@ -352,6 +367,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 val request = okhttp3.Request.Builder()
                     .url("https://api.emailjs.com/api/v1.0/email/send")
+                    .addHeader("Content-Type", "application/json")
                     .post(body)
                     .build()
 
@@ -359,11 +375,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     client.newCall(request).execute()
                 }
 
+                val responseBody = response.body?.string() ?: ""
+                Log.d("MainViewModel", "EmailJS response: ${response.code} - $responseBody")
+
                 if (response.isSuccessful) {
                     isOtpSent = true
                     forgotPasswordSuccess = "OTP sent to $email"
                 } else {
-                    forgotPasswordError = "Failed to send OTP. Please check your EmailJS configuration."
+                    forgotPasswordError = "EmailJS error (${response.code}): $responseBody"
                 }
             } catch (e: Exception) {
                 forgotPasswordError = "Failed to send OTP: ${SyncedStudyRepository.errorMessage(e)}"
@@ -400,9 +419,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     Log.e("MainViewModel", "Failed to sync password reset to backend", e)
                 }
                 forgotPasswordSuccess = "Password reset successfully!"
-                // Reset state after short delay
+                // Reset state after short delay, but keep email for login screen
                 delay(1500)
+                val resetEmail = forgotPasswordEmail
                 resetForgotPasswordState()
+                // Set the email back so LoginScreen can pick it up
+                forgotPasswordEmail = resetEmail
                 navigateTo(AppScreen.Login)
             } catch (e: Exception) {
                 forgotPasswordError = "Failed to reset password: ${SyncedStudyRepository.errorMessage(e)}"
@@ -758,6 +780,60 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         NotificationHelper.createNotificationChannels(application)
         initTts()
+        restorePersistedState()
+    }
+
+    private fun restorePersistedState() {
+        val onboardingDone = prefs.getBoolean("onboarding_completed", false)
+        val savedToken = prefs.getString("auth_token", null)
+        val savedEmail = prefs.getString("auth_email", null)
+
+        if (onboardingDone && savedToken != null && savedEmail != null) {
+            // Restore auth state and go directly to Main
+            repository.setAuthToken(savedToken, savedEmail)
+            viewModelScope.launch {
+                val user = repository.getUserByEmail(savedEmail)
+                if (user != null) {
+                    currentUser = user
+                    _currentUser.value = user
+                    userName = user.fullName
+                    userUniversity = user.university
+                    userFaculty = user.faculty
+                    userAvatarUrl = user.avatarUrl
+                    userStudyHours = user.studyHours.toString()
+                    deansListProgress = user.deansListProgress
+                    monthlyIncome = user.monthlyIncome
+                    monthlyBudgetLimit = user.monthlyBudgetLimit
+                    syncData()
+                }
+                navigateTo(AppScreen.Main)
+            }
+        } else if (onboardingDone) {
+            navigateTo(AppScreen.Login)
+        }
+        // If onboarding not done, stay on Splash (SplashScreen will handle the delay then navigate)
+    }
+
+    fun completeOnboarding() {
+        prefs.edit().putBoolean("onboarding_completed", true).apply()
+    }
+
+    private fun persistAuthState(token: String, email: String) {
+        prefs.edit()
+            .putString("auth_token", token)
+            .putString("auth_email", email)
+            .apply()
+    }
+
+    fun logout() {
+        prefs.edit()
+            .remove("auth_token")
+            .remove("auth_email")
+            .apply()
+        repository.setAuthToken("", null)
+        currentUser = null
+        _currentUser.value = null
+        navigateTo(AppScreen.Login)
     }
 
     private fun initTts() {

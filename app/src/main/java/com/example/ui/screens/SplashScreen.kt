@@ -114,7 +114,11 @@ fun SplashScreen(viewModel: MainViewModel) {
                 delay(800)
                 loadingText = "Ready to study!"
                 delay(600)
-                viewModel.navigateTo(AppScreen.OnboardingStage1)
+                // Only navigate if still on Splash (ViewModel may have already navigated)
+                if (viewModel.currentScreen == AppScreen.Splash) {
+                    viewModel.completeOnboarding()
+                    viewModel.navigateTo(AppScreen.OnboardingStage1)
+                }
             }
         }
     }

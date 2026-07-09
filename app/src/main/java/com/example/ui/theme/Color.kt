@@ -48,6 +48,17 @@ val SurfaceNormal = Color(0xFFE2E8F0)
 val SurfaceHigh = Color(0xFFCBD5E1)
 val SurfaceHighest = Color(0xFF94A3B8)
 
+// ── Dark Mode Surfaces ──────────────────────────────────
+val DarkBackground = Color(0xFF0F172A)
+val DarkOnBackground = Color(0xFFE2E8F0)
+val DarkSurface = Color(0xFF1E293B)
+val DarkOnSurface = Color(0xFFE2E8F0)
+val DarkSurfaceVariant = Color(0xFF334155)
+val DarkOnSurfaceVariant = Color(0xFF94A3B8)
+val DarkOutlineVariant = Color(0xFF475569)
+val DarkErrorContainer = Color(0xFF450A0A)
+val DarkOnErrorContainer = Color(0xFFFECACA)
+
 // ── Glass / Frost ────────────────────────────────────────
 val GlassWhite = Color(0xE8FFFFFF)
 val GlassWhiteBorder = Color(0x4DFFFFFF)

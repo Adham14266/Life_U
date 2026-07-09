@@ -207,7 +207,7 @@ fun FinancesScreen(viewModel: MainViewModel) {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                val budgetProgress = (totalExpenses / budgetLimit).toFloat()
+                val budgetProgress = if (budgetLimit > 0) (totalExpenses / budgetLimit).toFloat() else 0f
                 val isOverBudget = totalExpenses > budgetLimit
                 LinearProgressIndicator(
                     progress = { Math.min(1.0f, budgetProgress) },

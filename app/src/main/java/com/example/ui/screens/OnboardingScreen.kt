@@ -287,7 +287,10 @@ fun OnboardingScreen(viewModel: MainViewModel, stage: Int) {
                             when (stage) {
                                 1 -> viewModel.navigateTo(AppScreen.OnboardingStage2)
                                 2 -> viewModel.navigateTo(AppScreen.OnboardingStage3)
-                                3 -> viewModel.navigateTo(AppScreen.Login)
+                                3 -> {
+                                    viewModel.completeOnboarding()
+                                    viewModel.navigateTo(AppScreen.Login)
+                                }
                             }
                         },
                         colors = ButtonDefaults.buttonColors(

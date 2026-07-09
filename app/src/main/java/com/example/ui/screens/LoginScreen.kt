@@ -48,7 +48,7 @@ import com.example.ui.validation.isValidEmail
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(viewModel: MainViewModel, isSignUpMode: Boolean = false) {
-    var email by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf(viewModel.forgotPasswordEmail) }
     var password by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf(viewModel.userName) }
     var university by remember { mutableStateOf(viewModel.userUniversity) }
