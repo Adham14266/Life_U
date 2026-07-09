@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "tasks")
 data class Task(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val userEmail: String,
     val title: String,
     val priority: String, // "High", "Medium", "Done"
     val isCompleted: Boolean = false,
@@ -16,6 +17,7 @@ data class Task(
 @Entity(tableName = "classes")
 data class ClassEvent(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val userEmail: String,
     val name: String,
     val timeRange: String, // e.g. "10:00 AM - 11:30 AM"
     val dayOfWeek: String, // e.g. "Mon", "Tue", "Wed", "Thu", "Fri"
@@ -25,6 +27,7 @@ data class ClassEvent(
 @Entity(tableName = "transactions")
 data class FinanceTransaction(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val userEmail: String,
     val title: String,
     val amount: Double, // Negative for expense, positive for income
     val category: String, // "Housing", "Food", "Transportation", "Entertainment", "Books", "Income"
@@ -35,6 +38,7 @@ data class FinanceTransaction(
 @Entity(tableName = "notes")
 data class StudyNote(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val userEmail: String,
     val title: String,
     val content: String,
     val courseName: String,
@@ -44,6 +48,7 @@ data class StudyNote(
 @Entity(tableName = "course_grades")
 data class CourseGrade(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val userEmail: String,
     val courseName: String,
     val gradeLetter: String, // "A+", "A", "A-", "B+", etc.
     val creditHours: Int, // Credit value of the course (e.g. 3, 4)
@@ -53,6 +58,7 @@ data class CourseGrade(
 @Entity(tableName = "study_resources")
 data class StudyResource(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val userEmail: String,
     val title: String,
     val url: String,
     val category: String, // "Textbooks", "Study Materials", "Academic Articles", "Other"
@@ -61,3 +67,37 @@ data class StudyResource(
     val dateAdded: String = ""
 )
 
+@Entity(tableName = "exams")
+data class Exam(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val userEmail: String,
+    val title: String,
+    val courseName: String,
+    val examDate: String,
+    val examTime: String = "",
+    val location: String = "",
+    val notes: String = ""
+)
+
+@Entity(tableName = "users")
+data class User(
+    @PrimaryKey val email: String,
+    val password: String,
+    val fullName: String,
+    val university: String = "University",
+    val faculty: String = "",
+    val studyHours: Int = 0,
+    val deansListProgress: Float = 0.0f,
+    val monthlyIncome: Double = 0.0,
+    val monthlyBudgetLimit: Double = 0.0,
+    val avatarUrl: String = ""
+)
+
+@Entity(tableName = "subjects")
+data class Subject(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val userEmail: String,
+    val name: String,
+    val color: String = "#3B82F6",
+    val icon: String = "School"
+)

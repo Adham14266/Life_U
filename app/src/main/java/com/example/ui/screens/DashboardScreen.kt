@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -30,17 +32,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.toColorInt
+import coil.compose.AsyncImage
+import com.example.ui.components.getSubjectIcon
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.MainTab
 import com.example.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
+import java.util.Calendar
 
 @Composable
 fun DashboardScreen(viewModel: MainViewModel) {
     val scrollState = rememberScrollState()
     val urgentTasks by viewModel.urgentTasks.collectAsState()
+    val classesList by viewModel.classes.collectAsState()
+    val subjectsList by viewModel.subjects.collectAsState()
     
-    // Filter active (non-dismissed) urgent tasks
     val activeUrgentTasks = urgentTasks.filter { task ->
         !viewModel.dismissedUrgentTaskIds.contains(task.id)
     }
@@ -55,159 +62,142 @@ fun DashboardScreen(viewModel: MainViewModel) {
         SessionCompletedCelebrationDialog(viewModel = viewModel)
     }
 
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    val greetingText = when {
+        hour < 12 -> "Good Morning"
+        hour < 17 -> "Good Afternoon"
+        else -> "Good Evening"
+    }
+    val greetingEmoji = when {
+        hour < 12 -> "☀️"
+        hour < 17 -> "🌤️"
+        else -> "🌙"
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
             .padding(16.dp)
     ) {
-        if (activeUrgentTasks.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-                    .background(ErrorRed.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-                    .border(1.dp, ErrorRed.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-                    .padding(16.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+        var startAnimations by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            delay(100)
+            startAnimations = true
+        }
+
+        AnimatedVisibility(
+            visible = activeUrgentTasks.isNotEmpty(),
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            if (activeUrgentTasks.isNotEmpty()) {
+                val firstUrgentTask = activeUrgentTasks.first()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 20.dp)
+                        .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = ShadowColor)
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(GradientPrimaryStart, GradientPrimaryEnd)
+                            ),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        .padding(24.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .background(ErrorRed.copy(alpha = 0.15f), CircleShape)
-                            .padding(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = "Alert",
-                            tint = ErrorRed,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Assignment Deadline Alert",
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
-                            color = ErrorRed
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = if (activeUrgentTasks.size == 1) {
-                                "Your assignment \"${activeUrgentTasks.first().title}\" is due within 24 hours!"
-                            } else {
-                                "You have ${activeUrgentTasks.size} assignments due within 24 hours!"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    
-                    IconButton(
-                        onClick = {
-                            activeUrgentTasks.forEach { task ->
-                                viewModel.dismissUrgentTask(task.id)
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Dismiss",
-                            tint = MaterialTheme.colorScheme.outline
-                        )
-                    }
-                }
-            }
-        }
-
-        // Welcome Hero Banner
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(PrimaryBlue, PrimaryBlueContainer)
-                    ),
-                    shape = RoundedCornerShape(24.dp)
-                )
-                .padding(24.dp)
-        ) {
-            // Background blur circle
-            Box(
-                modifier = Modifier
-                    .size(150.dp)
-                    .align(Alignment.TopEnd)
-                    .offset(x = 30.dp, y = (-30).dp)
-                    .blur(40.dp)
-                    .alpha(0.2f)
-                    .background(SecondaryGreenContainer, CircleShape)
-            )
-
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .background(Color.White.copy(alpha = 0.2f), CircleShape)
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "Exam in 5 days",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = OnPrimaryBlue
+                            .size(150.dp)
+                            .align(Alignment.TopEnd)
+                            .offset(x = 30.dp, y = (-30).dp)
+                            .blur(40.dp)
+                            .alpha(0.2f)
+                            .background(SecondaryGreenContainer, CircleShape)
                     )
-                }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Box(
+                            modifier = Modifier
+                                .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "Priority Task",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = OnPrimaryBlue
+                            )
+                        }
 
-                Text(
-                    text = "Finals: Advanced Biology",
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 24.sp
-                    ),
-                    color = OnPrimaryBlue
-                )
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = firstUrgentTask.title,
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 24.sp
+                            ),
+                            color = OnPrimaryBlue
+                        )
 
-                Text(
-                    text = "You've covered 65% of the syllabus. Keep the momentum going!",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = OnPrimaryBlue.copy(alpha = 0.9f)
-                )
+                        Spacer(modifier = Modifier.height(4.dp))
 
-                Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            text = "Due: ${firstUrgentTask.dueDate} - Don't forget to submit on time!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnPrimaryBlue.copy(alpha = 0.9f)
+                        )
 
-                Button(
-                    onClick = { viewModel.selectTab(MainTab.Tutor) },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = SecondaryGreenContainer,
-                        contentColor = OnSecondaryContainer
-                    ),
-                    shape = RoundedCornerShape(20.dp),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Start Focused Session", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Button(
+                            onClick = { 
+                                viewModel.selectedStudySubject = if (firstUrgentTask.category.isNotBlank()) firstUrgentTask.category else firstUrgentTask.title
+                                showPomodoroHubDialog = true 
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = PrimaryBlue
+                            ),
+                            shape = RoundedCornerShape(20.dp),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Start Focused Session", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                        }
+                    }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Grid Bento Row: Focus Timer & Weekly Goal progress
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Interactive Pomodoro Timer Widget (Upgraded!)
             Box(
                 modifier = Modifier
                     .weight(1.1f)
-                    .background(SurfaceLowest, RoundedCornerShape(20.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+                    .shadow(8.dp, RoundedCornerShape(20.dp), spotColor = ShadowColorGlow.copy(alpha = 0.08f))
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                GlassWhite,
+                                GlassWhite.copy(alpha = 0.75f)
+                            )
+                        ),
+                        RoundedCornerShape(20.dp)
+                    )
+                    .border(
+                        1.dp,
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                GlassWhiteBorder,
+                                GlassWhiteBorder.copy(alpha = 0.2f)
+                            )
+                        ),
+                        RoundedCornerShape(20.dp)
+                    )
                     .clickable { showPomodoroHubDialog = true }
                     .padding(12.dp)
             ) {
@@ -233,7 +223,7 @@ fun DashboardScreen(viewModel: MainViewModel) {
                             color = when (viewModel.pomodoroMode) {
                                 MainViewModel.PomodoroMode.WORK -> PrimaryBlue
                                 MainViewModel.PomodoroMode.SHORT_BREAK -> SecondaryGreen
-                                MainViewModel.PomodoroMode.LONG_BREAK -> TertiaryNavy
+                                MainViewModel.PomodoroMode.LONG_BREAK -> TertiaryViolet
                             }
                         )
                         Icon(
@@ -246,7 +236,6 @@ fun DashboardScreen(viewModel: MainViewModel) {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Circular ring countdown
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.size(80.dp)
@@ -264,16 +253,14 @@ fun DashboardScreen(viewModel: MainViewModel) {
                         val activeColor = when (viewModel.pomodoroMode) {
                             MainViewModel.PomodoroMode.WORK -> PrimaryBlue
                             MainViewModel.PomodoroMode.SHORT_BREAK -> SecondaryGreen
-                            MainViewModel.PomodoroMode.LONG_BREAK -> TertiaryNavy
+                            MainViewModel.PomodoroMode.LONG_BREAK -> TertiaryViolet
                         }
 
                         Canvas(modifier = Modifier.fillMaxSize()) {
-                            // Background track
                             drawCircle(
                                 color = SurfaceNormal,
                                 style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
                             )
-                            // Foreground active countdown ring
                             drawArc(
                                 color = activeColor,
                                 startAngle = -90f,
@@ -305,18 +292,13 @@ fun DashboardScreen(viewModel: MainViewModel) {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Button(
                             onClick = {
-                                if (viewModel.isTimerRunning) {
-                                    viewModel.pauseFocusTimer()
-                                } else {
-                                    viewModel.startFocusTimer()
-                                }
+                                if (viewModel.isTimerRunning) viewModel.pauseFocusTimer() else viewModel.startFocusTimer()
                             },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (viewModel.isTimerRunning) ErrorRed else SecondaryGreen
@@ -351,12 +333,29 @@ fun DashboardScreen(viewModel: MainViewModel) {
                 }
             }
 
-            // Stats progress card
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .background(SurfaceLow, RoundedCornerShape(20.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+                    .shadow(8.dp, RoundedCornerShape(20.dp), spotColor = GradientNatureStart.copy(alpha = 0.05f))
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                GlassWhite,
+                                GlassWhite.copy(alpha = 0.75f)
+                            )
+                        ),
+                        RoundedCornerShape(20.dp)
+                    )
+                    .border(
+                        1.dp,
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                GlassWhiteBorder.copy(alpha = 0.8f),
+                                GlassWhiteBorder.copy(alpha = 0.2f)
+                            )
+                        ),
+                        RoundedCornerShape(20.dp)
+                    )
                     .padding(16.dp)
             ) {
                 Column(
@@ -375,15 +374,16 @@ fun DashboardScreen(viewModel: MainViewModel) {
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "${viewModel.userStudyHours} of 350 total study hours.",
+                        text = "${viewModel.userStudyHours} of 40 weekly study hours.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    val progressPercent = (viewModel.userStudyHours.toFloatOrNull() ?: 0f) / 40f
                     LinearProgressIndicator(
-                        progress = { 0.72f },
+                        progress = { progressPercent.coerceIn(0f, 1f) },
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = SurfaceNormal,
                         modifier = Modifier
@@ -398,12 +398,25 @@ fun DashboardScreen(viewModel: MainViewModel) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "${(progressPercent * 100).toInt()}% Done",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
+                        val remaining = (40 - (viewModel.userStudyHours.toIntOrNull() ?: 0)).coerceAtLeast(0)
                         Text(
-                            text = "72% Progress",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Text(
-                            text = "7 hours left",
+                            text = "${remaining}h left",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -414,7 +427,6 @@ fun DashboardScreen(viewModel: MainViewModel) {
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Horizontal Subject Cards Catalog
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -429,10 +441,10 @@ fun DashboardScreen(viewModel: MainViewModel) {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "See all",
+                text = "Manage",
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { viewModel.selectTab(MainTab.Schedule) }
+                modifier = Modifier.clickable { viewModel.navigateTo(com.example.ui.viewmodel.AppScreen.SubjectManagement) }
             )
         }
 
@@ -442,41 +454,47 @@ fun DashboardScreen(viewModel: MainViewModel) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            item {
-                SubjectCatalogCard(
-                    title = "Biology",
-                    topicsLeft = 4,
-                    progress = 0.65f,
-                    icon = Icons.Default.Biotech,
-                    colorBg = SecondaryGreenContainer.copy(alpha = 0.2f),
-                    colorAccent = SecondaryGreen
-                )
-            }
-            item {
-                SubjectCatalogCard(
-                    title = "Calculus",
-                    topicsLeft = 2,
-                    progress = 0.85f,
-                    icon = Icons.Default.Functions,
-                    colorBg = PrimaryBlue.copy(alpha = 0.1f),
-                    colorAccent = PrimaryBlue
-                )
-            }
-            item {
-                SubjectCatalogCard(
-                    title = "History",
-                    topicsLeft = 8,
-                    progress = 0.30f,
-                    icon = Icons.Default.HistoryEdu,
-                    colorBg = TertiaryContainer.copy(alpha = 0.15f),
-                    colorAccent = TertiaryNavy
-                )
+            if (subjectsList.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .width(170.dp)
+                            .height(140.dp)
+                            .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = ShadowColorLight)
+                            .background(SurfaceLowest, RoundedCornerShape(20.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
+                            .clickable { viewModel.navigateTo(com.example.ui.viewmodel.AppScreen.SubjectManagement) }
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Add Subject",
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(subjectsList) { subject ->
+                    val colorAccent = try { Color(subject.color.toColorInt()) } catch (_: Exception) { MaterialTheme.colorScheme.primary }
+                    SubjectCatalogCard(
+                        title = subject.name,
+                        topicsLeft = 0,
+                        progress = 0f,
+                        icon = getSubjectIcon(subject.icon),
+                        colorBg = colorAccent.copy(alpha = 0.2f),
+                        colorAccent = colorAccent
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Study Plan Row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -500,29 +518,27 @@ fun DashboardScreen(viewModel: MainViewModel) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Today's classes
         Column(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            StudyPlanRowItem(
-                subjectName = "Calculus III",
-                timeRange = "10:00 AM - 11:30 AM",
-                icon = Icons.Default.Functions,
-                colorAccent = PrimaryBlue
-            )
-            StudyPlanRowItem(
-                subjectName = "Organic Chem Lab",
-                timeRange = "01:00 PM - 03:00 PM",
-                icon = Icons.Default.Biotech,
-                colorAccent = SecondaryGreen
-            )
-            StudyPlanRowItem(
-                subjectName = "History Seminar",
-                timeRange = "04:30 PM - 05:30 PM",
-                icon = Icons.Default.HistoryEdu,
-                colorAccent = TertiaryNavy
-            )
+            if (classesList.isEmpty()) {
+                StudyPlanRowItem(
+                    subjectName = "No classes today",
+                    timeRange = "Enjoy your free time!",
+                    icon = Icons.Default.Info,
+                    colorAccent = MaterialTheme.colorScheme.outline
+                )
+            } else {
+                classesList.take(3).forEach { classEvent ->
+                    StudyPlanRowItem(
+                        subjectName = classEvent.name,
+                        timeRange = classEvent.timeRange,
+                        icon = Icons.Default.Book,
+                        colorAccent = PrimaryBlue
+                    )
+                }
+            }
         }
     }
 }
@@ -538,33 +554,38 @@ fun SubjectCatalogCard(
 ) {
     Box(
         modifier = Modifier
-            .width(160.dp)
-            .background(colorBg, RoundedCornerShape(16.dp))
-            .border(1.dp, colorAccent.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+            .width(170.dp)
+            .shadow(6.dp, RoundedCornerShape(20.dp), spotColor = ShadowColorLight)
+            .background(SurfaceLowest, RoundedCornerShape(20.dp))
+            .border(1.dp, colorAccent.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
             .padding(16.dp)
     ) {
         Column {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(colorAccent, RoundedCornerShape(10.dp)),
+                    .size(44.dp)
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(colorAccent, colorAccent.copy(alpha = 0.7f))
+                        ),
+                        RoundedCornerShape(12.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(imageVector = icon, contentDescription = null, tint = Color.White)
+                Icon(imageVector = icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                ),
-                color = MaterialTheme.colorScheme.onSurface
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = "$topicsLeft Topics left",
@@ -577,7 +598,7 @@ fun SubjectCatalogCard(
             LinearProgressIndicator(
                 progress = { progress },
                 color = colorAccent,
-                trackColor = Color.White.copy(alpha = 0.4f),
+                trackColor = colorAccent.copy(alpha = 0.12f),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
@@ -598,31 +619,37 @@ fun StudyPlanRowItem(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(2.dp, RoundedCornerShape(16.dp), spotColor = ShadowColorLight)
             .background(SurfaceLowest, RoundedCornerShape(16.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-            .padding(16.dp)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+            .padding(14.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(44.dp)
-                .background(colorAccent.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                .size(46.dp)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(colorAccent.copy(alpha = 0.12f), colorAccent.copy(alpha = 0.06f))
+                    ),
+                    RoundedCornerShape(14.dp)
+                ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = colorAccent)
+            Icon(imageVector = icon, contentDescription = null, tint = colorAccent, modifier = Modifier.size(22.dp))
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(14.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = subjectName,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = timeRange,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -630,7 +657,8 @@ fun StudyPlanRowItem(
         Icon(
             imageVector = Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.outline
+            tint = MaterialTheme.colorScheme.outlineVariant,
+            modifier = Modifier.size(20.dp)
         )
     }
 }
@@ -638,22 +666,15 @@ fun StudyPlanRowItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PomodoroFocusHubDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
-    val classesList by viewModel.classes.collectAsState()
-    val notesList by viewModel.notes.collectAsState()
+    val subjectsList by viewModel.subjects.collectAsState()
+    val userEmail = viewModel.currentUser?.email ?: ""
     
-    val subjects = remember(classesList, notesList) {
-        val list = mutableListOf<String>()
-        classesList.forEach { if (it.name.isNotBlank() && !list.contains(it.name)) list.add(it.name) }
-        notesList.forEach { if (it.courseName.isNotBlank() && !list.contains(it.courseName)) list.add(it.courseName) }
-        listOf("Advanced Biology", "Intro to Economics", "General Study").forEach {
-            if (!list.contains(it)) list.add(it)
-        }
-        list.distinct()
+    val subjects = remember(subjectsList) {
+        if (subjectsList.isEmpty()) listOf(com.example.data.local.Subject(name = "General Study", userEmail = userEmail)) else subjectsList
     }
 
     var showSettings by remember { mutableStateOf(false) }
 
-    // Sliders state
     var tempWorkDuration by remember { mutableStateOf(viewModel.workDurationMinutes.toFloat()) }
     var tempShortBreak by remember { mutableStateOf(viewModel.shortBreakMinutes.toFloat()) }
     var tempLongBreak by remember { mutableStateOf(viewModel.longBreakMinutes.toFloat()) }
@@ -671,7 +692,6 @@ fun PomodoroFocusHubDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     .fillMaxSize()
                     .padding(24.dp)
             ) {
-                // Header Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -683,32 +703,14 @@ fun PomodoroFocusHubDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Text(
-                            text = "Pomodoro Study Sessions",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
                     }
 
                     Row {
-                        IconButton(
-                            onClick = { showSettings = !showSettings },
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = if (showSettings) SurfaceNormal else Color.Transparent
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Settings",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
+                        IconButton(onClick = { showSettings = !showSettings }) {
+                            Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.primary)
                         }
                         IconButton(onClick = onDismiss) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
-                                tint = MaterialTheme.colorScheme.outline
-                            )
+                            Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.outline)
                         }
                     }
                 }
@@ -716,376 +718,89 @@ fun PomodoroFocusHubDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (showSettings) {
-                    // Settings configuration Panel
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text(
-                            text = "Timer Configurations",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Text("Timer Configurations", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
 
-                        // Work duration slider
                         Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Focus Duration", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
-                                Text("${tempWorkDuration.toInt()} min", style = MaterialTheme.typography.bodyMedium, color = PrimaryBlue)
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Focus Duration")
+                                Text("${tempWorkDuration.toInt()} min", color = PrimaryBlue)
                             }
-                            Slider(
-                                value = tempWorkDuration,
-                                onValueChange = { tempWorkDuration = it },
-                                valueRange = 5f..60f,
-                                steps = 11,
-                                colors = SliderDefaults.colors(
-                                    activeTrackColor = PrimaryBlue,
-                                    thumbColor = PrimaryBlue
-                                )
-                            )
+                            Slider(value = tempWorkDuration, onValueChange = { tempWorkDuration = it }, valueRange = 5f..60f)
                         }
-
-                        // Short break duration slider
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Short Break Duration", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
-                                Text("${tempShortBreak.toInt()} min", style = MaterialTheme.typography.bodyMedium, color = SecondaryGreen)
-                            }
-                            Slider(
-                                value = tempShortBreak,
-                                onValueChange = { tempShortBreak = it },
-                                valueRange = 1f..20f,
-                                steps = 19,
-                                colors = SliderDefaults.colors(
-                                    activeTrackColor = SecondaryGreen,
-                                    thumbColor = SecondaryGreen
-                                )
-                            )
-                        }
-
-                        // Long break duration slider
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Long Break Duration", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
-                                Text("${tempLongBreak.toInt()} min", style = MaterialTheme.typography.bodyMedium, color = TertiaryNavy)
-                            }
-                            Slider(
-                                value = tempLongBreak,
-                                onValueChange = { tempLongBreak = it },
-                                valueRange = 5f..45f,
-                                steps = 8,
-                                colors = SliderDefaults.colors(
-                                    activeTrackColor = TertiaryNavy,
-                                    thumbColor = TertiaryNavy
-                                )
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.weight(1f))
 
                         Button(
                             onClick = {
-                                viewModel.updateDurations(
-                                    tempWorkDuration.toInt(),
-                                    tempShortBreak.toInt(),
-                                    tempLongBreak.toInt()
-                                )
+                                viewModel.updateDurations(tempWorkDuration.toInt(), tempShortBreak.toInt(), tempLongBreak.toInt())
                                 showSettings = false
                             },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Save Configurations", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                            Text("Save")
                         }
                     }
                 } else {
-                    // Regular Mode Panel
                     Column(
                         modifier = Modifier.weight(1f),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // 1. Mode Pill Toggles
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(SurfaceLow, RoundedCornerShape(16.dp))
-                                .padding(4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                .padding(4.dp)
                         ) {
-                            listOf(
-                                MainViewModel.PomodoroMode.WORK to "Focus",
-                                MainViewModel.PomodoroMode.SHORT_BREAK to "Short Break",
-                                MainViewModel.PomodoroMode.LONG_BREAK to "Long Break"
-                            ).forEach { (mode, label) ->
+                            listOf(MainViewModel.PomodoroMode.WORK to "Focus", MainViewModel.PomodoroMode.SHORT_BREAK to "Short", MainViewModel.PomodoroMode.LONG_BREAK to "Long").forEach { (mode, label) ->
                                 val isSelected = viewModel.pomodoroMode == mode
-                                val accentColor = when (mode) {
-                                    MainViewModel.PomodoroMode.WORK -> PrimaryBlue
-                                    MainViewModel.PomodoroMode.SHORT_BREAK -> SecondaryGreen
-                                    MainViewModel.PomodoroMode.LONG_BREAK -> TertiaryNavy
-                                }
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(if (isSelected) accentColor else Color.Transparent)
+                                        .background(if (isSelected) PrimaryBlue else Color.Transparent)
                                         .clickable { viewModel.changePomodoroMode(mode) }
                                         .padding(vertical = 10.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = label,
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium
-                                        ),
-                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        // 2. Subject Selection
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = "SUBJECT FOCUS CONTEXT",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                items(subjects) { subject ->
-                                    val isSelected = viewModel.selectedStudySubject == subject
-                                    FilterChip(
-                                        selected = isSelected,
-                                        onClick = { viewModel.selectedStudySubject = subject },
-                                        label = { Text(subject) },
-                                        leadingIcon = if (isSelected) {
-                                            {
-                                                Icon(
-                                                    imageVector = Icons.Default.Check,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
-                                        } else null,
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = PrimaryBlue.copy(alpha = 0.15f),
-                                            selectedLabelColor = PrimaryBlue,
-                                            selectedLeadingIconColor = PrimaryBlue
-                                        )
-                                    )
+                                    Text(text = label, color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // 3. Circular Ring countdown (Larger!)
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.size(150.dp)
-                        ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(150.dp)) {
                             val minutes = viewModel.focusTimerLeftSeconds / 60
                             val seconds = viewModel.focusTimerLeftSeconds % 60
                             val timeStr = String.format("%02d:%02d", minutes, seconds)
                             
-                            val maxSeconds = when(viewModel.pomodoroMode) {
-                                MainViewModel.PomodoroMode.WORK -> viewModel.workDurationMinutes * 60
-                                MainViewModel.PomodoroMode.SHORT_BREAK -> viewModel.shortBreakMinutes * 60
-                                MainViewModel.PomodoroMode.LONG_BREAK -> viewModel.longBreakMinutes * 60
-                            }
-                            val sweepPercent = if (maxSeconds > 0) viewModel.focusTimerLeftSeconds.toFloat() / maxSeconds else 1f
-                            val activeColor = when (viewModel.pomodoroMode) {
-                                MainViewModel.PomodoroMode.WORK -> PrimaryBlue
-                                MainViewModel.PomodoroMode.SHORT_BREAK -> SecondaryGreen
-                                MainViewModel.PomodoroMode.LONG_BREAK -> TertiaryNavy
-                            }
-
                             Canvas(modifier = Modifier.fillMaxSize()) {
-                                drawCircle(
-                                    color = SurfaceNormal,
-                                    style = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round)
-                                )
-                                drawArc(
-                                    color = activeColor,
-                                    startAngle = -90f,
-                                    sweepAngle = sweepPercent * 360f,
-                                    useCenter = false,
-                                    style = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round)
-                                )
+                                drawCircle(color = SurfaceNormal, style = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round))
                             }
 
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = timeStr,
-                                    style = MaterialTheme.typography.headlineLarge.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 32.sp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = if (viewModel.isTimerRunning) "RUNNING" else "PAUSED",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                                    color = if (viewModel.isTimerRunning) SecondaryGreen else ErrorRed
-                                )
+                                Text(text = timeStr, style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Black))
+                                Text(text = if (viewModel.isTimerRunning) "RUNNING" else "PAUSED", style = MaterialTheme.typography.labelSmall, color = if (viewModel.isTimerRunning) SecondaryGreen else ErrorRed)
                             }
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Text(
-                            text = if (viewModel.pomodoroMode == MainViewModel.PomodoroMode.WORK) {
-                                "Focusing on ${viewModel.selectedStudySubject}"
-                            } else {
-                                "Break Time - Recharge"
-                            },
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Text(text = "Focusing on ${viewModel.selectedStudySubject}", fontWeight = FontWeight.Bold)
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // 4. Timer Controls Row
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Reset
-                            OutlinedButton(
-                                onClick = { viewModel.resetFocusTimer() },
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(Icons.Default.Refresh, contentDescription = "Reset")
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Reset")
-                            }
-
-                            // Start / Pause FAB-style button
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            OutlinedButton(onClick = { viewModel.resetFocusTimer() }) { Text("Reset") }
                             Button(
-                                onClick = {
-                                    if (viewModel.isTimerRunning) {
-                                        viewModel.pauseFocusTimer()
-                                    } else {
-                                        viewModel.startFocusTimer()
-                                    }
-                                },
-                                shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (viewModel.isTimerRunning) ErrorRed else SecondaryGreen
-                                ),
-                                modifier = Modifier.height(48.dp)
+                                onClick = { if (viewModel.isTimerRunning) viewModel.pauseFocusTimer() else viewModel.startFocusTimer() },
+                                colors = ButtonDefaults.buttonColors(containerColor = if (viewModel.isTimerRunning) ErrorRed else SecondaryGreen)
                             ) {
-                                Icon(
-                                    imageVector = if (viewModel.isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = "Play/Pause"
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = if (viewModel.isTimerRunning) "Pause" else "Start Session",
-                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // 5. Completed Session Log
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = "RECENT COMPLETED SESSIONS",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            if (viewModel.focusHistory.isEmpty()) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(SurfaceLow, RoundedCornerShape(12.dp))
-                                        .padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Info,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.outline
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "No focus intervals logged today yet.",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.outline
-                                    )
-                                }
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(110.dp)
-                                        .background(SurfaceLow, RoundedCornerShape(16.dp))
-                                        .padding(8.dp)
-                                ) {
-                                    LazyColumn(
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.fillMaxSize()
-                                    ) {
-                                        items(viewModel.focusHistory) { session ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .background(Color.White, RoundedCornerShape(10.dp))
-                                                    .padding(10.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.CheckCircle,
-                                                        contentDescription = null,
-                                                        tint = SecondaryGreen,
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
-                                                    Column {
-                                                        Text(
-                                                            text = session.subject,
-                                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                                                        )
-                                                        Text(
-                                                            text = session.timestamp,
-                                                            style = MaterialTheme.typography.labelSmall,
-                                                            color = MaterialTheme.colorScheme.outline
-                                                        )
-                                                    }
-                                                }
-                                                Text(
-                                                    text = "${session.durationMinutes} min",
-                                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                                                    color = PrimaryBlue
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
+                                Text(if (viewModel.isTimerRunning) "Pause" else "Start Session")
                             }
                         }
                     }
@@ -1099,80 +814,11 @@ fun PomodoroFocusHubDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
 fun SessionCompletedCelebrationDialog(viewModel: MainViewModel) {
     AlertDialog(
         onDismissRequest = { viewModel.showSessionCompletedDialog = false },
-        title = {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .background(SecondaryGreen.copy(alpha = 0.15f), CircleShape)
-                        .padding(16.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Celebration,
-                        contentDescription = "Celebration",
-                        tint = SecondaryGreen,
-                        modifier = Modifier.size(48.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = if (viewModel.lastCompletedSessionType.contains("Session")) "Focus Session Complete!" else "Break Complete!",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-            }
-        },
-        text = {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = if (viewModel.lastCompletedSessionType.contains("Session")) {
-                        "Outstanding dedication! You successfully completed your focus interval for ${viewModel.selectedStudySubject}."
-                    } else {
-                        "Your break is finished! You should feel refreshed and ready to conquer your next objective."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
-                if (viewModel.lastCompletedSessionType.contains("Session")) {
-                    Box(
-                        modifier = Modifier
-                            .background(SurfaceLow, RoundedCornerShape(12.dp))
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Timer,
-                                tint = PrimaryBlue,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                text = "+${viewModel.workDurationMinutes} mins added to study history!",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = PrimaryBlue
-                            )
-                        }
-                    }
-                }
-            }
-        },
+        title = { Text("Focus Session Complete!", fontWeight = FontWeight.Bold) },
+        text = { Text("Outstanding dedication! You successfully completed your focus interval.") },
         confirmButton = {
-            Button(
-                onClick = { viewModel.showSessionCompletedDialog = false },
-                colors = ButtonDefaults.buttonColors(containerColor = SecondaryGreen)
-            ) {
-                Text("Let's Continue!", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+            Button(onClick = { viewModel.showSessionCompletedDialog = false }) {
+                Text("Let's Continue!")
             }
         }
     )

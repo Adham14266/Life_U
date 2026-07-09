@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,6 +17,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -34,144 +38,228 @@ fun MainAppContainer(viewModel: MainViewModel) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // High quality student avatar image from the HTML
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .clickable { viewModel.selectTab(MainTab.Profile) }
-                        ) {
-                            AsyncImage(
-                                model = "https://lh3.googleusercontent.com/aida-public/AB6AXuAkgLf4qN7Wz5RHGIrbPgN2_XM2DuyYkDATavqweaeei7y1a2n0bYnPUEeEh73c9OaiQeFg1umORKjDC0DcklFC-lIZNrDF4nh1hS_3J48NmGnby3vPcwQagnfpWmOimsWas4mXQjsU1PWqVZ_VKWFk1XJVAKHnDUWO5kCdebmBxlSsjESGkiExfILgMrVHFHG9qRLMKK-DD--y-vGzFm-__W2Cc_AybpNNrGeT0Ak_DrHJxe63G_WgMj3q_PLD3RF13oUX6d8uVLmI",
-                                contentDescription = "User Avatar",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surface,
+                                MaterialTheme.colorScheme.background
                             )
-                        }
+                        )
+                    )
+            ) {
+                TopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        brush = Brush.linearGradient(
+                                            colors = listOf(GradientPrimaryStart, GradientPrimaryEnd)
+                                        )
+                                    )
+                                    .clickable { viewModel.selectTab(MainTab.Profile) }
+                            ) {
+                                if (viewModel.userAvatarUrl.isNotEmpty()) {
+                                    AsyncImage(
+                                        model = viewModel.userAvatarUrl,
+                                        contentDescription = "User Avatar",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = "User Avatar",
+                                        tint = Color.White.copy(alpha = 0.8f),
+                                        modifier = Modifier.fillMaxSize().padding(8.dp)
+                                    )
+                                }
+                            }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
 
-                        Column {
-                            Text(
-                                text = "Life U",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 18.sp,
-                                    color = MaterialTheme.colorScheme.primary
+                            Column {
+                                Text(
+                                    text = "Life U",
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 20.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 )
-                            )
-                            Text(
-                                text = "Hi, ${viewModel.userName.split(" ").firstOrNull() ?: "Student"}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showNotificationsDialog = true }) {
-                        Box(contentAlignment = Alignment.TopEnd) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = "Notifications",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (urgentTasks.isNotEmpty()) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .background(ErrorRed, CircleShape)
-                                        .align(Alignment.TopEnd)
+                                Text(
+                                    text = "Hi, ${viewModel.userName.split(" ").firstOrNull() ?: "Student"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                    }
-                    IconButton(onClick = { viewModel.selectTab(MainTab.Tutor) }) {
-                        Icon(
-                            imageVector = Icons.Default.SmartToy,
-                            contentDescription = "AI Tutor",
-                            tint = if (viewModel.currentTab == MainTab.Tutor) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    },
+                    actions = {
+                        IconButton(onClick = { showNotificationsDialog = true }) {
+                            Box(contentAlignment = Alignment.TopEnd) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(
+                                            MaterialTheme.colorScheme.surfaceVariant,
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Notifications,
+                                        contentDescription = "Notifications",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                if (urgentTasks.isNotEmpty()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .background(AccentRose, CircleShape)
+                                            .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                            .align(Alignment.TopEnd)
+                                            .offset(x = 2.dp, y = (-2).dp)
+                                    )
+                                }
+                            }
+                        }
+                        IconButton(onClick = { viewModel.selectTab(MainTab.Tutor) }) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(
+                                        if (viewModel.currentTab == MainTab.Tutor)
+                                            MaterialTheme.colorScheme.primaryContainer
+                                        else
+                                            MaterialTheme.colorScheme.surfaceVariant,
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SmartToy,
+                                    contentDescription = "AI Tutor",
+                                    tint = if (viewModel.currentTab == MainTab.Tutor) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
                 )
-            )
+            }
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+            Box(
+                modifier = Modifier
+                    .shadow(16.dp, spotColor = ShadowColor)
             ) {
-                // Dashboard Tab
-                NavigationBarItem(
-                    selected = viewModel.currentTab == MainTab.Dashboard,
-                    onClick = { viewModel.selectTab(MainTab.Dashboard) },
-                    icon = {
-                        Icon(
-                            imageVector = if (viewModel.currentTab == MainTab.Dashboard) Icons.Default.Dashboard else Icons.Outlined.Dashboard,
-                            contentDescription = "Dashboard"
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp,
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+                ) {
+                    // Dashboard Tab
+                    NavigationBarItem(
+                        selected = viewModel.currentTab == MainTab.Dashboard,
+                        onClick = { viewModel.selectTab(MainTab.Dashboard) },
+                        icon = {
+                            Icon(
+                                imageVector = if (viewModel.currentTab == MainTab.Dashboard) Icons.Default.Dashboard else Icons.Outlined.Dashboard,
+                                contentDescription = "Dashboard"
+                            )
+                        },
+                        label = { Text("Home", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
                         )
-                    },
-                    label = { Text("Home", style = MaterialTheme.typography.labelSmall) }
-                )
+                    )
 
-                // Tutor Tab
-                NavigationBarItem(
-                    selected = viewModel.currentTab == MainTab.Tutor,
-                    onClick = { viewModel.selectTab(MainTab.Tutor) },
-                    icon = {
-                        Icon(
-                            imageVector = if (viewModel.currentTab == MainTab.Tutor) Icons.Default.SmartToy else Icons.Outlined.SmartToy,
-                            contentDescription = "Tutor"
+                    // Tutor Tab
+                    NavigationBarItem(
+                        selected = viewModel.currentTab == MainTab.Tutor,
+                        onClick = { viewModel.selectTab(MainTab.Tutor) },
+                        icon = {
+                            Icon(
+                                imageVector = if (viewModel.currentTab == MainTab.Tutor) Icons.Default.SmartToy else Icons.Outlined.SmartToy,
+                                contentDescription = "Tutor"
+                            )
+                        },
+                        label = { Text("Tutor", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
                         )
-                    },
-                    label = { Text("Tutor", style = MaterialTheme.typography.labelSmall) }
-                )
+                    )
 
-                // Schedule Tab
-                NavigationBarItem(
-                    selected = viewModel.currentTab == MainTab.Schedule,
-                    onClick = { viewModel.selectTab(MainTab.Schedule) },
-                    icon = {
-                        Icon(
-                            imageVector = if (viewModel.currentTab == MainTab.Schedule) Icons.Default.CalendarMonth else Icons.Outlined.CalendarMonth,
-                            contentDescription = "Schedule"
+                    // Schedule Tab
+                    NavigationBarItem(
+                        selected = viewModel.currentTab == MainTab.Schedule,
+                        onClick = { viewModel.selectTab(MainTab.Schedule) },
+                        icon = {
+                            Icon(
+                                imageVector = if (viewModel.currentTab == MainTab.Schedule) Icons.Default.CalendarMonth else Icons.Outlined.CalendarMonth,
+                                contentDescription = "Schedule"
+                            )
+                        },
+                        label = { Text("Schedule", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
                         )
-                    },
-                    label = { Text("Schedule", style = MaterialTheme.typography.labelSmall) }
-                )
+                    )
 
-                // Finances Tab
-                NavigationBarItem(
-                    selected = viewModel.currentTab == MainTab.Finances,
-                    onClick = { viewModel.selectTab(MainTab.Finances) },
-                    icon = {
-                        Icon(
-                            imageVector = if (viewModel.currentTab == MainTab.Finances) Icons.Default.Payments else Icons.Outlined.Payments,
-                            contentDescription = "Finances"
+                    // Finances Tab
+                    NavigationBarItem(
+                        selected = viewModel.currentTab == MainTab.Finances,
+                        onClick = { viewModel.selectTab(MainTab.Finances) },
+                        icon = {
+                            Icon(
+                                imageVector = if (viewModel.currentTab == MainTab.Finances) Icons.Default.Payments else Icons.Outlined.Payments,
+                                contentDescription = "Finances"
+                            )
+                        },
+                        label = { Text("Finances", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
                         )
-                    },
-                    label = { Text("Finances", style = MaterialTheme.typography.labelSmall) }
-                )
+                    )
 
-                // Profile Tab
-                NavigationBarItem(
-                    selected = viewModel.currentTab == MainTab.Profile,
-                    onClick = { viewModel.selectTab(MainTab.Profile) },
-                    icon = {
-                        Icon(
-                            imageVector = if (viewModel.currentTab == MainTab.Profile) Icons.Default.Person else Icons.Outlined.Person,
-                            contentDescription = "Profile"
+                    // Profile Tab
+                    NavigationBarItem(
+                        selected = viewModel.currentTab == MainTab.Profile,
+                        onClick = { viewModel.selectTab(MainTab.Profile) },
+                        icon = {
+                            Icon(
+                                imageVector = if (viewModel.currentTab == MainTab.Profile) Icons.Default.Person else Icons.Outlined.Person,
+                                contentDescription = "Profile"
+                            )
+                        },
+                        label = { Text("Profile", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
                         )
-                    },
-                    label = { Text("Profile", style = MaterialTheme.typography.labelSmall) }
-                )
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -181,12 +269,20 @@ fun MainAppContainer(viewModel: MainViewModel) {
                 .padding(innerPadding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            when (viewModel.currentTab) {
-                MainTab.Dashboard -> DashboardScreen(viewModel)
-                MainTab.Tutor -> TutorScreen(viewModel)
-                MainTab.Schedule -> ScheduleScreen(viewModel)
-                MainTab.Finances -> FinancesScreen(viewModel)
-                MainTab.Profile -> ProfileScreen(viewModel)
+            AnimatedContent(
+                targetState = viewModel.currentTab,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
+                },
+                label = "TabTransition"
+            ) { targetTab ->
+                when (targetTab) {
+                    MainTab.Dashboard -> DashboardScreen(viewModel)
+                    MainTab.Tutor -> TutorScreen(viewModel)
+                    MainTab.Schedule -> ScheduleScreen(viewModel)
+                    MainTab.Finances -> FinancesScreen(viewModel)
+                    MainTab.Profile -> ProfileScreen(viewModel)
+                }
             }
         }
     }

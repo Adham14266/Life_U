@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +29,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -52,11 +55,21 @@ fun ProfileScreen(viewModel: MainViewModel) {
     var showEditProfileDialog by remember { mutableStateOf(false) }
     var tempName by remember { mutableStateOf(viewModel.userName) }
     var tempUni by remember { mutableStateOf(viewModel.userUniversity) }
+    var tempFaculty by remember { mutableStateOf(viewModel.userFaculty) }
     var tempNameError by remember { mutableStateOf<String?>(null) }
     var tempUniError by remember { mutableStateOf<String?>(null) }
+    var tempFacultyError by remember { mutableStateOf<String?>(null) }
 
     val grades by viewModel.grades.collectAsState()
     var activeSubTab by remember { mutableStateOf(ProfileSubTab.Overview) }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            viewModel.updateAvatar(it.toString())
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -64,12 +77,27 @@ fun ProfileScreen(viewModel: MainViewModel) {
             .verticalScroll(scrollState)
             .padding(16.dp)
     ) {
-        // Profile Header
+        // Profile Header (glassmorphism)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(SurfaceLow, RoundedCornerShape(24.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(24.dp))
+                .shadow(12.dp, RoundedCornerShape(24.dp), spotColor = ShadowColorGlow.copy(alpha = 0.06f))
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            GlassWhite,
+                            GlassWhite.copy(alpha = 0.7f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(24.dp)
+                )
+                .border(
+                    1.dp,
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(GlassWhiteBorder, GlassWhiteBorder.copy(alpha = 0.2f))
+                    ),
+                    shape = RoundedCornerShape(24.dp)
+                )
                 .padding(20.dp)
         ) {
             Row(
@@ -81,14 +109,47 @@ fun ProfileScreen(viewModel: MainViewModel) {
                     modifier = Modifier
                         .size(72.dp)
                         .clip(CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), CircleShape)
                         .background(MaterialTheme.colorScheme.primaryContainer)
+                        .clickable { imagePickerLauncher.launch("image/*") }
                 ) {
-                    AsyncImage(
-                        model = "https://lh3.googleusercontent.com/aida-public/AB6AXuAkgLf4qN7Wz5RHGIrbPgN2_XM2DuyYkDATavqweaeei7y1a2n0bYnPUEeEh73c9OaiQeFg1umORKjDC0DcklFC-lIZNrDF4nh1hS_3J48NmGnby3vPcwQagnfpWmOimsWas4mXQjsU1PWqVZ_VKWFk1XJVAKHnDUWO5kCdebmBxlSsjESGkiExfILgMrVHFHG9qRLMKK-DD--y-vGzFm-__W2Cc_AybpNNrGeT0Ak_DrHJxe63G_WgMj3q_PLD3RF13oUX6d8uVLmI",
-                        contentDescription = "Alex Johnson Avatar",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    if (viewModel.userAvatarUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = viewModel.userAvatarUrl,
+                            contentDescription = "User Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+                    }
+                    
+                    // Tiny camera overlay
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(24.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape)
+                            .border(1.dp, Color.White, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PhotoCamera,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(16.dp))
@@ -99,23 +160,33 @@ fun ProfileScreen(viewModel: MainViewModel) {
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = viewModel.userUniversity,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.School,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "${viewModel.userUniversity}${if(viewModel.userFaculty.isNotEmpty()) " • ${viewModel.userFaculty}" else ""}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 IconButton(
                     onClick = {
                         tempName = viewModel.userName
                         tempUni = viewModel.userUniversity
+                        tempFaculty = viewModel.userFaculty
                         showEditProfileDialog = true
                     },
                     modifier = Modifier
                         .size(40.dp)
-                        .background(SurfaceNormal, CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
                 ) {
                     Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Profile", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                 }
@@ -194,8 +265,16 @@ fun ProfileScreen(viewModel: MainViewModel) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(SecondaryGreenContainer.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
-                    .border(1.dp, SecondaryGreen.copy(alpha = 0.2f), RoundedCornerShape(20.dp))
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                SecondaryGreenContainer.copy(alpha = 0.2f),
+                                AccentTealContainer.copy(alpha = 0.1f)
+                            )
+                        ),
+                        shape = RoundedCornerShape(20.dp)
+                    )
+                    .border(1.dp, SecondaryGreen.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
                     .padding(16.dp)
             ) {
                 Column {
@@ -224,7 +303,7 @@ fun ProfileScreen(viewModel: MainViewModel) {
                     LinearProgressIndicator(
                         progress = { viewModel.deansListProgress },
                         color = SecondaryGreen,
-                        trackColor = Color.White.copy(alpha = 0.4f),
+                        trackColor = SecondaryGreenContainer.copy(alpha = 0.4f),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(8.dp)
@@ -301,7 +380,7 @@ fun ProfileScreen(viewModel: MainViewModel) {
                 SettingItemRow(
                     icon = Icons.Default.Sync,
                     title = "University Sync",
-                    description = "Stanford central databases",
+                    description = "${viewModel.userUniversity.ifBlank { "University" }} central databases",
                     trailingContent = {
                         Box(
                             modifier = Modifier
@@ -361,19 +440,32 @@ fun ProfileScreen(viewModel: MainViewModel) {
                         isError = tempUniError != null,
                         supportingText = tempUniError?.let { error -> { Text(error) } }
                     )
+
+                    OutlinedTextField(
+                        value = tempFaculty,
+                        onValueChange = {
+                            tempFaculty = it
+                            tempFacultyError = null
+                        },
+                        label = { Text("Faculty / Department") },
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = tempFacultyError != null,
+                        supportingText = tempFacultyError?.let { error -> { Text(error) } }
+                    )
                 }
             },
             confirmButton = {
                 Button(onClick = {
                     val validName = isNonBlank(tempName)
                     val validUni = isNonBlank(tempUni)
+                    val validFaculty = isNonBlank(tempFaculty)
 
                     tempNameError = if (!validName) "Name is required" else null
                     tempUniError = if (!validUni) "University is required" else null
+                    tempFacultyError = if (!validFaculty) "Faculty is required" else null
 
-                    if (validName && validUni) {
-                        viewModel.userName = tempName.trim()
-                        viewModel.userUniversity = tempUni.trim()
+                    if (validName && validUni && validFaculty) {
+                        viewModel.updateProfile(tempName.trim(), tempUni.trim(), tempFaculty.trim())
                         showEditProfileDialog = false
                     }
                 }) {
@@ -803,8 +895,8 @@ fun ProfileBentoCard(
 ) {
     Box(
         modifier = modifier
-            .background(SurfaceLowest, RoundedCornerShape(16.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .background(SurfaceLowest, RoundedCornerShape(20.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
             .padding(16.dp)
     ) {
         Column {
@@ -813,19 +905,26 @@ fun ProfileBentoCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                Icon(imageVector = icon, contentDescription = null, tint = colorAccent, modifier = Modifier.size(18.dp))
+                Text(text = title, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .background(colorAccent.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = icon, contentDescription = null, tint = colorAccent, modifier = Modifier.size(16.dp))
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = value,
-                style = MaterialTheme.typography.displayLarge.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold),
+                style = MaterialTheme.typography.displaySmall.copy(fontSize = 28.sp, fontWeight = FontWeight.Black),
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = subText,
@@ -849,24 +948,32 @@ fun SettingItemRow(
         modifier = modifier
             .fillMaxWidth()
             .background(SurfaceLowest, RoundedCornerShape(16.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             .padding(14.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .background(SurfaceLow, RoundedCornerShape(10.dp)),
+                .size(40.dp)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                        )
+                    ),
+                    RoundedCornerShape(12.dp)
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(14.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(2.dp))
@@ -880,7 +987,7 @@ fun SettingItemRow(
         if (trailingContent != null) {
             trailingContent()
         } else {
-            Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
+            Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.size(20.dp))
         }
     }
 }

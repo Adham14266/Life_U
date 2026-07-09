@@ -6,8 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [Task::class, ClassEvent::class, FinanceTransaction::class, StudyNote::class, CourseGrade::class, StudyResource::class],
-    version = 5,
+    entities = [Task::class, ClassEvent::class, FinanceTransaction::class, StudyNote::class, CourseGrade::class, StudyResource::class, User::class, Exam::class, Subject::class],
+    version = 12,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -17,6 +17,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun studyNoteDao(): StudyNoteDao
     abstract fun courseGradeDao(): CourseGradeDao
     abstract fun studyResourceDao(): StudyResourceDao
+    abstract fun userDao(): UserDao
+    abstract fun examDao(): ExamDao
+    abstract fun subjectDao(): SubjectDao
 
     companion object {
         @Volatile

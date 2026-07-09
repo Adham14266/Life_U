@@ -1,10 +1,10 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,14 +25,17 @@ import com.example.ui.theme.*
 import com.example.ui.viewmodel.MainViewModel
 import com.example.data.local.ClassEvent
 import com.example.data.local.Task
+import com.example.data.local.Exam
 import com.example.ui.validation.isNonBlank
 import com.example.ui.validation.isValidDueDate
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleScreen(viewModel: MainViewModel) {
     val tasks by viewModel.tasks.collectAsState()
     val classes by viewModel.classes.collectAsState()
+    val exams by viewModel.exams.collectAsState()
     val scrollState = rememberScrollState()
 
     var taskTitle by remember { mutableStateOf("") }
@@ -53,6 +57,27 @@ fun ScheduleScreen(viewModel: MainViewModel) {
     var editTaskCategoryError by remember { mutableStateOf<String?>(null) }
     var editTaskDueDateError by remember { mutableStateOf<String?>(null) }
 
+    // Add class (weekly timetable) states
+    var showAddClassDialog by remember { mutableStateOf(false) }
+    var className by remember { mutableStateOf("") }
+    var classTime by remember { mutableStateOf("") }
+    var classDay by remember { mutableStateOf("Mon") }
+    var classType by remember { mutableStateOf("Lecture") }
+    var classNameError by remember { mutableStateOf<String?>(null) }
+    var classTimeError by remember { mutableStateOf<String?>(null) }
+
+    // Add exam states
+    var showAddExamDialog by remember { mutableStateOf(false) }
+    var examTitle by remember { mutableStateOf("") }
+    var examCourse by remember { mutableStateOf("") }
+    var examDate by remember { mutableStateOf("") }
+    var examTime by remember { mutableStateOf("") }
+    var examLocation by remember { mutableStateOf("") }
+    var examNotes by remember { mutableStateOf("") }
+    var examTitleError by remember { mutableStateOf<String?>(null) }
+    var examCourseError by remember { mutableStateOf<String?>(null) }
+    var examDateError by remember { mutableStateOf<String?>(null) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -63,8 +88,13 @@ fun ScheduleScreen(viewModel: MainViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(SurfaceLow, RoundedCornerShape(24.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(24.dp))
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(SurfaceLow, SurfaceLowest)
+                    ),
+                    shape = RoundedCornerShape(24.dp)
+                )
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
                 .padding(20.dp)
         ) {
             Column {
@@ -101,55 +131,40 @@ fun ScheduleScreen(viewModel: MainViewModel) {
                         Text("11:00", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
-                    // Mon Column
-                    TimetableColumn(
-                        day = "Mon",
-                        isToday = true,
-                        modifier = Modifier.weight(1.2f),
-                        events = listOf(
-                            TimetableEvent("Calc 101", "09:00", PrimaryBlue)
+                    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri")
+                    days.forEach { day ->
+                        TimetableColumn(
+                            day = day,
+                            isToday = false, // Could be determined by Calendar
+                            modifier = Modifier.weight(1.2f),
+                            events = classes.filter { it.dayOfWeek == day }.map { 
+                                TimetableEvent(
+                                    title = it.name,
+                                    time = if (it.timeRange.contains("09:00")) "09:00" else "11:00",
+                                    color = when {
+                                        it.name.contains("Bio", ignoreCase = true) -> SecondaryGreen
+                                        it.name.contains("Calc", ignoreCase = true) -> PrimaryBlue
+                                        else -> TertiaryViolet
+                                    }
+                                )
+                            }
                         )
-                    )
+                    }
+                }
 
-                    // Tue Column
-                    TimetableColumn(
-                        day = "Tue",
-                        isToday = false,
-                        modifier = Modifier.weight(1.2f),
-                        events = listOf(
-                            TimetableEvent("History", "11:00", TertiaryNavy)
-                        )
-                    )
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    // Wed Column
-                    TimetableColumn(
-                        day = "Wed",
-                        isToday = false,
-                        modifier = Modifier.weight(1.2f),
-                        events = listOf(
-                            TimetableEvent("Bio Lab", "09:00", SecondaryGreen)
-                        )
-                    )
-
-                    // Thu Column
-                    TimetableColumn(
-                        day = "Thu",
-                        isToday = false,
-                        modifier = Modifier.weight(1.2f),
-                        events = listOf(
-                            TimetableEvent("History", "11:00", TertiaryNavy)
-                        )
-                    )
-
-                    // Fri Column
-                    TimetableColumn(
-                        day = "Fri",
-                        isToday = false,
-                        modifier = Modifier.weight(1.2f),
-                        events = listOf(
-                            TimetableEvent("Calc 101", "09:00", PrimaryBlue)
-                        )
-                    )
+                // Add class button
+                Button(
+                    onClick = { showAddClassDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Add Class to Timetable", style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
@@ -190,23 +205,34 @@ fun ScheduleScreen(viewModel: MainViewModel) {
             }
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                tasks.forEach { task ->
-                    TaskRowItem(
-                        task = task,
-                        isUrgent = viewModel.isDueWithin24Hours(task.dueDate),
-                        onToggle = { viewModel.toggleTaskCompletion(task) },
-                        onEdit = {
-                            editingTask = task
-                            editTaskTitle = task.title
-                            editTaskPriority = task.priority
-                            editTaskCategory = task.category
-                            editTaskDueDate = task.dueDate
-                            showEditTaskDialog = true
-                        },
-                        onDelete = {
-                            viewModel.deleteTask(task)
-                        }
-                    )
+                tasks.forEachIndexed { index, task ->
+                    var isVisible by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) {
+                        delay(100L * index)
+                        isVisible = true
+                    }
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn() + expandVertically() + slideInHorizontally(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        TaskRowItem(
+                            task = task,
+                            isUrgent = viewModel.isDueWithin24Hours(task.dueDate),
+                            onToggle = { viewModel.toggleTaskCompletion(task) },
+                            onEdit = {
+                                editingTask = task
+                                editTaskTitle = task.title
+                                editTaskPriority = task.priority
+                                editTaskCategory = task.category
+                                editTaskDueDate = task.dueDate
+                                showEditTaskDialog = true
+                            },
+                            onDelete = {
+                                viewModel.deleteTask(task)
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -214,34 +240,50 @@ fun ScheduleScreen(viewModel: MainViewModel) {
         Spacer(modifier = Modifier.height(24.dp))
 
         // Section 3: Upcoming Exams
-        Text(
-            text = "Upcoming Exams",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Upcoming Exams",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            IconButton(
+                onClick = { showAddExamDialog = true },
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+            ) {
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Exam", tint = Color.White, modifier = Modifier.size(18.dp))
+            }
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
-
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Exam 1
-            ExamCard(
-                title = "Calculus Midterm",
-                dateText = "OCT 12",
-                daysLeftText = "3 days left",
-                isUrgent = true,
-                colorTheme = ErrorRed,
-                colorBg = ErrorContainer
-            )
-
-            // Exam 2
-            ExamCard(
-                title = "Molecular Biology Final",
-                dateText = "OCT 25",
-                daysLeftText = "16 days left",
-                isUrgent = false,
-                colorTheme = SecondaryGreen,
-                colorBg = SecondaryGreenContainer.copy(alpha = 0.2f)
-            )
+        
+        if (exams.isEmpty()) {
+            Text("No upcoming exams found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.outline)
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                exams.forEachIndexed { index, exam ->
+                    var isVisible by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) {
+                        delay(200L * index)
+                        isVisible = true
+                    }
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = fadeIn() + expandVertically() + slideInHorizontally(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        ExamCardNew(
+                            exam = exam,
+                            onDelete = { viewModel.deleteExam(exam) }
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -453,6 +495,219 @@ fun ScheduleScreen(viewModel: MainViewModel) {
             }
         )
     }
+
+    // Add Class Dialog
+    if (showAddClassDialog) {
+       AlertDialog(
+           onDismissRequest = { showAddClassDialog = false },
+           title = { Text("Add Class to Timetable", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) },
+           text = {
+               Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                   OutlinedTextField(
+                       value = className,
+                       onValueChange = {
+                           className = it
+                           classNameError = null
+                       },
+                       label = { Text("Class Name") },
+                       modifier = Modifier.fillMaxWidth(),
+                       isError = classNameError != null,
+                       supportingText = classNameError?.let { error -> { Text(error) } }
+                   )
+
+                   OutlinedTextField(
+                       value = classTime,
+                       onValueChange = {
+                           classTime = it
+                           classTimeError = null
+                       },
+                       label = { Text("Time (e.g. 10:00 AM - 11:30 AM)") },
+                       modifier = Modifier.fillMaxWidth(),
+                       isError = classTimeError != null,
+                       supportingText = classTimeError?.let { error -> { Text(error) } }
+                   )
+
+                   Text("Day of Week", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                   Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                       listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").forEach { day ->
+                           val isSelected = classDay == day
+                           Box(
+                               modifier = Modifier
+                                   .background(
+                                       if (isSelected) MaterialTheme.colorScheme.primary else SurfaceNormal,
+                                       shape = RoundedCornerShape(8.dp)
+                                   )
+                                   .clickable { classDay = day }
+                                   .padding(horizontal = 8.dp, vertical = 4.dp)
+                           ) {
+                               Text(
+                                   text = day,
+                                   style = MaterialTheme.typography.labelSmall.copy(
+                                       fontWeight = FontWeight.Bold,
+                                       color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                   )
+                               )
+                           }
+                       }
+                   }
+
+                   Text("Class Type", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                   Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                       listOf("Lecture", "Lab", "Seminar").forEach { type ->
+                           val isSelected = classType == type
+                           Box(
+                               modifier = Modifier
+                                   .background(
+                                       if (isSelected) MaterialTheme.colorScheme.primary else SurfaceNormal,
+                                       shape = CircleShape
+                                   )
+                                   .clickable { classType = type }
+                                   .padding(horizontal = 12.dp, vertical = 6.dp)
+                           ) {
+                               Text(
+                                   text = type,
+                                   style = MaterialTheme.typography.labelSmall.copy(
+                                       fontWeight = FontWeight.Bold,
+                                       color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                   )
+                               )
+                           }
+                       }
+                   }
+               }
+           },
+           confirmButton = {
+               Button(onClick = {
+                   val validName = isNonBlank(className)
+                   val validTime = isNonBlank(classTime)
+
+                   classNameError = if (!validName) "Class name is required" else null
+                   classTimeError = if (!validTime) "Time is required" else null
+
+                   if (validName && validTime) {
+                       viewModel.addClass(className.trim(), classTime.trim(), classDay, classType)
+                       className = ""
+                       classTime = ""
+                       classDay = "Mon"
+                       classType = "Lecture"
+                       showAddClassDialog = false
+                   }
+               }) {
+                   Text("Add Class")
+               }
+           },
+           dismissButton = {
+               TextButton(onClick = { showAddClassDialog = false }) {
+                   Text("Cancel")
+               }
+           }
+       )
+    }
+
+    // Add Exam Dialog
+    if (showAddExamDialog) {
+       AlertDialog(
+           onDismissRequest = { showAddExamDialog = false },
+           title = { Text("Add New Exam", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) },
+           text = {
+               Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
+                   OutlinedTextField(
+                       value = examTitle,
+                       onValueChange = {
+                           examTitle = it
+                           examTitleError = null
+                       },
+                       label = { Text("Exam Title (e.g. Midterm, Final)") },
+                       modifier = Modifier.fillMaxWidth(),
+                       isError = examTitleError != null,
+                       supportingText = examTitleError?.let { error -> { Text(error) } }
+                   )
+
+                   OutlinedTextField(
+                       value = examCourse,
+                       onValueChange = {
+                           examCourse = it
+                           examCourseError = null
+                       },
+                       label = { Text("Course Name") },
+                       modifier = Modifier.fillMaxWidth(),
+                       isError = examCourseError != null,
+                       supportingText = examCourseError?.let { error -> { Text(error) } }
+                   )
+
+                   OutlinedTextField(
+                       value = examDate,
+                       onValueChange = {
+                           examDate = it
+                           examDateError = null
+                       },
+                       label = { Text("Exam Date (e.g. Dec 15)") },
+                       modifier = Modifier.fillMaxWidth(),
+                       isError = examDateError != null,
+                       supportingText = examDateError?.let { error -> { Text(error) } }
+                   )
+
+                   OutlinedTextField(
+                       value = examTime,
+                       onValueChange = { examTime = it },
+                       label = { Text("Exam Time (optional)") },
+                       modifier = Modifier.fillMaxWidth()
+                   )
+
+                   OutlinedTextField(
+                       value = examLocation,
+                       onValueChange = { examLocation = it },
+                       label = { Text("Location (optional)") },
+                       modifier = Modifier.fillMaxWidth()
+                   )
+
+                   OutlinedTextField(
+                       value = examNotes,
+                       onValueChange = { examNotes = it },
+                       label = { Text("Notes (optional)") },
+                       modifier = Modifier.fillMaxWidth(),
+                       minLines = 2
+                   )
+               }
+           },
+           confirmButton = {
+               Button(onClick = {
+                   val validTitle = isNonBlank(examTitle)
+                   val validCourse = isNonBlank(examCourse)
+                   val validDate = isValidDueDate(examDate)
+
+                   examTitleError = if (!validTitle) "Exam title is required" else null
+                   examCourseError = if (!validCourse) "Course name is required" else null
+                   examDateError = if (!validDate) "Use a short date like Dec 15" else null
+
+                   if (validTitle && validCourse && validDate) {
+                       viewModel.addExam(
+                           examTitle.trim(),
+                           examCourse.trim(),
+                           examDate.trim(),
+                           examTime.trim(),
+                           examLocation.trim(),
+                           examNotes.trim()
+                       )
+                       examTitle = ""
+                       examCourse = ""
+                       examDate = ""
+                       examTime = ""
+                       examLocation = ""
+                       examNotes = ""
+                       showAddExamDialog = false
+                   }
+               }) {
+                   Text("Add Exam")
+               }
+           },
+           dismissButton = {
+               TextButton(onClick = { showAddExamDialog = false }) {
+                   Text("Cancel")
+               }
+           }
+       )
+    }
 }
 
 @Composable
@@ -484,8 +739,13 @@ fun TimetableColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
-                    .background(event09.color.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                    .border(1.dp, event09.color.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(event09.color.copy(alpha = 0.12f), event09.color.copy(alpha = 0.04f))
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .border(1.dp, event09.color.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
                     .padding(4.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -509,8 +769,13 @@ fun TimetableColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
-                    .background(event11.color.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                    .border(1.dp, event11.color.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(event11.color.copy(alpha = 0.12f), event11.color.copy(alpha = 0.04f))
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .border(1.dp, event11.color.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
                     .padding(4.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -542,13 +807,16 @@ fun TaskRowItem(
         modifier = Modifier
             .fillMaxWidth()
             .background(SurfaceLowest, RoundedCornerShape(16.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             .padding(14.dp)
     ) {
         Checkbox(
             checked = task.isCompleted,
             onCheckedChange = { onToggle() },
-            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+            colors = CheckboxDefaults.colors(
+                checkedColor = SecondaryGreen,
+                checkmarkColor = Color.White
+            )
         )
 
         Spacer(modifier = Modifier.width(12.dp))
@@ -587,7 +855,7 @@ fun TaskRowItem(
                 // Custom priority chip
                 val (chipColor, label) = when (task.priority) {
                     "High" -> Pair(ErrorRed, "HIGH")
-                    "Medium" -> Pair(TertiaryNavy, "MEDIUM")
+                    "Medium" -> Pair(TertiaryViolet, "MEDIUM")
                     "Low" -> Pair(PrimaryBlue, "LOW")
                     else -> Pair(SecondaryGreen, "DONE")
                 }
@@ -686,7 +954,12 @@ fun ExamCard(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .background(colorBg, RoundedCornerShape(16.dp))
+            .background(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(colorBg, colorBg.copy(alpha = 0.5f))
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
             .border(1.dp, colorTheme.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
@@ -735,6 +1008,97 @@ fun ExamCard(
                 text = if (isUrgent) "URGENT" else "UPCOMING",
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
                 color = colorTheme
+            )
+        }
+    }
+}
+
+@Composable
+fun ExamCardNew(
+    exam: Exam,
+    onDelete: () -> Unit = {}
+) {
+    val isUrgent = false // You can add a helper function to determine this
+    val colorTheme = PrimaryBlue
+    val colorBg = PrimaryBlue.copy(alpha = 0.1f)
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(colorBg, colorBg.copy(alpha = 0.5f))
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .border(1.dp, colorTheme.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+            .padding(16.dp)
+    ) {
+        // Exam calendar card
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .background(colorTheme, RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = exam.examDate.split(" ").firstOrNull() ?: "--",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                )
+                Text(
+                    text = exam.examDate.split(" ").getOrNull(1) ?: "",
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = exam.title,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = exam.courseName,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (exam.examTime.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = exam.examTime,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        fontSize = 10.sp
+                    )
+                }
+            }
+        }
+
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete Exam",
+                tint = ErrorRed.copy(alpha = 0.8f),
+                modifier = Modifier.size(16.dp)
             )
         }
     }

@@ -105,7 +105,7 @@ fun OnboardingScreen(viewModel: MainViewModel, stage: Int) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Illustration Card (Asymmetric Bento style with subtle animations)
+            // Illustration Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -119,126 +119,126 @@ fun OnboardingScreen(viewModel: MainViewModel, stage: Int) {
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(32.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                // Interactive inner decorations based on stage
-                when (stage) {
-                    1 -> OnboardingIllustration1()
-                    2 -> OnboardingIllustration2()
-                    3 -> OnboardingIllustration3()
+                AnimatedContent(
+                    targetState = stage,
+                    transitionSpec = {
+                        fadeIn() togetherWith fadeOut()
+                    },
+                    label = "illustration_transition"
+                ) { targetStage ->
+                    when (targetStage) {
+                        1 -> OnboardingIllustration1()
+                        2 -> OnboardingIllustration2()
+                        3 -> OnboardingIllustration3()
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Text Content Section (staggered animations)
+            // Text Content Section
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                when (stage) {
-                    1 -> {
-                        Text(
-                            text = "Welcome to Life U",
-                            style = MaterialTheme.typography.headlineLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = (-0.5).sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Manage your studies, schedule, assignments, and daily tasks all in one place. Your academic journey, simplified.",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 24.sp
-                            ),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                    }
-                    2 -> {
-                        Text(
-                            text = "Learn with AI",
-                            style = MaterialTheme.typography.headlineLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = (-0.5).sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Upload your lecture files and ask the AI to explain topics, summarize lessons, generate quizzes, and create flashcards.",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 24.sp
-                            ),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Modern chips pattern
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            OnboardingChip(icon = Icons.Default.Summarize, label = "Summaries", color = PrimaryBlue)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            OnboardingChip(icon = Icons.Default.Quiz, label = "Quizzes", color = SecondaryGreen)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            OnboardingChip(icon = Icons.Default.Style, label = "Flashcards", color = PrimaryBlue)
-                        }
-                    }
-                    3 -> {
-                        Text(
-                            text = "Track Your Progress",
-                            style = MaterialTheme.typography.headlineLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = (-0.5).sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Monitor your study hours, expenses, savings, habits, and personal goals with beautiful analytics in Life U.",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 24.sp
-                            ),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Chips
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            OnboardingChip(icon = Icons.Default.Timer, label = "Study Hours", color = PrimaryBlue)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            OnboardingChip(icon = Icons.Default.Payments, label = "Expenses", color = TertiaryNavy)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            OnboardingChip(icon = Icons.Default.TrendingUp, label = "Habits", color = SecondaryGreen, isOutline = true)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            OnboardingChip(icon = Icons.Default.Stars, label = "Goals", color = TertiaryNavy)
+                AnimatedContent(
+                    targetState = stage,
+                    transitionSpec = {
+                        slideInHorizontally { it } + fadeIn() togetherWith slideOutHorizontally { -it } + fadeOut()
+                    },
+                    label = "text_transition"
+                ) { targetStage ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        when (targetStage) {
+                            1 -> {
+                                Text(
+                                    text = "Welcome to Life U",
+                                    style = MaterialTheme.typography.headlineLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = (-0.5).sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Manage your studies, schedule, assignments, and daily tasks all in one place. Your academic journey, simplified.",
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        lineHeight = 24.sp
+                                    ),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                )
+                            }
+                            2 -> {
+                                Text(
+                                    text = "Learn with AI",
+                                    style = MaterialTheme.typography.headlineLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = (-0.5).sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Upload your lecture files and ask the AI to explain topics, summarize lessons, generate quizzes, and create flashcards.",
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        lineHeight = 24.sp
+                                    ),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    OnboardingChip(icon = Icons.Default.Summarize, label = "Summaries", color = PrimaryBlue)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    OnboardingChip(icon = Icons.Default.Quiz, label = "Quizzes", color = SecondaryGreen)
+                                }
+                            }
+                            3 -> {
+                                Text(
+                                    text = "Track Your Progress",
+                                    style = MaterialTheme.typography.headlineLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = (-0.5).sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Monitor your study hours, expenses, savings, habits, and personal goals with beautiful analytics in Life U.",
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        lineHeight = 24.sp
+                                    ),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    OnboardingChip(icon = Icons.Default.Timer, label = "Study", color = PrimaryBlue)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    OnboardingChip(icon = Icons.Default.Payments, label = "Wallet", color = TertiaryViolet)
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            // Sticky Bottom navigation area
+            // Bottom navigation
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -246,7 +246,6 @@ fun OnboardingScreen(viewModel: MainViewModel, stage: Int) {
                     .padding(bottom = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Step Indicator Dots
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
@@ -259,9 +258,6 @@ fun OnboardingScreen(viewModel: MainViewModel, stage: Int) {
                     StepDot(isActive = stage == 3, isExtended = stage == 3)
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Action Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = if (stage > 1) Arrangement.SpaceBetween else Arrangement.Center
@@ -301,8 +297,7 @@ fun OnboardingScreen(viewModel: MainViewModel, stage: Int) {
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
                             .height(56.dp)
-                            .fillMaxWidth(if (stage == 1) 1f else 0.65f),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                            .fillMaxWidth(if (stage == 1) 1f else 0.65f)
                     ) {
                         Text(
                             text = if (stage == 3) "Get Started" else "Next",
@@ -316,7 +311,7 @@ fun OnboardingScreen(viewModel: MainViewModel, stage: Int) {
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "Step $stage of 3: Personalized Setup",
+                    text = "Step $stage of 3",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
@@ -334,16 +329,23 @@ fun OnboardingIllustration1() {
     ) {
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(110.dp)
                 .background(PrimaryBlue.copy(alpha = 0.1f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.School,
-                contentDescription = null,
-                tint = PrimaryBlue,
-                modifier = Modifier.size(48.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(GradientPrimaryStart, GradientPrimaryEnd)
+                        ),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.School, contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp))
+            }
         }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
@@ -362,20 +364,27 @@ fun OnboardingIllustration2() {
     ) {
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(110.dp)
                 .background(SecondaryGreen.copy(alpha = 0.1f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.SmartToy,
-                contentDescription = null,
-                tint = SecondaryGreen,
-                modifier = Modifier.size(48.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(GradientNatureStart, GradientNatureEnd)
+                        ),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.SmartToy, contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp))
+            }
         }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "AI-Driven Insights",
+            text = "AI Insights",
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, color = SecondaryGreen)
         )
     }
@@ -390,44 +399,44 @@ fun OnboardingIllustration3() {
     ) {
         Box(
             modifier = Modifier
-                .size(100.dp)
-                .background(PrimaryBlue.copy(alpha = 0.1f), CircleShape),
+                .size(110.dp)
+                .background(TertiaryViolet.copy(alpha = 0.1f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Timeline,
-                contentDescription = null,
-                tint = PrimaryBlue,
-                modifier = Modifier.size(48.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(GradientCoolStart, GradientCoolEnd)
+                        ),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Timeline, contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp))
+            }
         }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "Track Every Milestone",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, color = PrimaryBlue)
+            text = "Track Growth",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, color = TertiaryViolet)
         )
     }
 }
 
 @Composable
-fun OnboardingChip(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, color: Color, isOutline: Boolean = false) {
+fun OnboardingChip(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, color: Color) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .background(
-                if (isOutline) Color.Transparent else color.copy(alpha = 0.1f),
-                shape = CircleShape
-            )
-            .border(
-                1.dp,
-                if (isOutline) color.copy(alpha = 0.4f) else Color.Transparent,
-                CircleShape
-            )
+            .background(color.copy(alpha = 0.08f), CircleShape)
+            .border(1.dp, color.copy(alpha = 0.15f), CircleShape)
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
         Spacer(modifier = Modifier.width(6.dp))
-        Text(text = label, style = MaterialTheme.typography.labelLarge.copy(color = color, fontWeight = FontWeight.Bold))
+        Text(text = label, style = MaterialTheme.typography.labelMedium.copy(color = color, fontWeight = FontWeight.Bold))
     }
 }
 

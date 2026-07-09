@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -100,8 +101,8 @@ fun FinancesScreen(viewModel: MainViewModel) {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                        colors = listOf(OnBackgroundSlate, MaterialTheme.colorScheme.onSurfaceVariant)
+                    brush = Brush.linearGradient(
+                        colors = listOf(GradientPrimaryStart, GradientCoolEnd)
                     ),
                     shape = RoundedCornerShape(24.dp)
                 )
@@ -184,15 +185,24 @@ fun FinancesScreen(viewModel: MainViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = String.format("Remaining Budget: $%,.2f", remainingBudget),
+                        text = String.format("Remaining: $%,.2f", remainingBudget),
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         color = Color.White
                     )
-                    Text(
-                        text = String.format("%.0f%% Spent", if (budgetLimit > 0) (totalExpenses / budgetLimit) * 100 else 0.0),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (totalExpenses > budgetLimit) ErrorRed else Color.White.copy(alpha = 0.8f)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                if (totalExpenses > budgetLimit) ErrorRed.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.15f),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = String.format("%.0f%% Spent", if (budgetLimit > 0) (totalExpenses / budgetLimit) * 100 else 0.0),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = if (totalExpenses > budgetLimit) Color.White else Color.White.copy(alpha = 0.9f)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -264,7 +274,7 @@ fun FinancesScreen(viewModel: MainViewModel) {
                                 }
                                 if (housingAngle > 0f) {
                                     drawArc(
-                                        color = TertiaryNavy,
+                                        color = TertiaryViolet,
                                         startAngle = currentStartAngle,
                                         sweepAngle = housingAngle,
                                         useCenter = false,
@@ -316,7 +326,7 @@ fun FinancesScreen(viewModel: MainViewModel) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 LegendRowItem(color = PrimaryBlue, label = "Food", pct = String.format("%.0f%% ($%,.0f)", foodPct * 100, foodSum))
-                LegendRowItem(color = TertiaryNavy, label = "Housing", pct = String.format("%.0f%% ($%,.0f)", housingPct * 100, housingSum))
+                LegendRowItem(color = TertiaryViolet, label = "Housing", pct = String.format("%.0f%% ($%,.0f)", housingPct * 100, housingSum))
                 LegendRowItem(color = SecondaryGreen, label = "Transport", pct = String.format("%.0f%% ($%,.0f)", transportPct * 100, transportSum))
                 LegendRowItem(color = Color(0xFFFF9800), label = "Books/Other", pct = String.format("%.0f%% ($%,.0f)", booksOtherPct * 100, booksOtherSum))
             }
@@ -415,8 +425,7 @@ fun FinancesScreen(viewModel: MainViewModel) {
                     tempBudgetError = if (!validBudget) "Enter a valid budget amount" else null
 
                     if (validIncome && validBudget) {
-                        viewModel.monthlyIncome = inc
-                        viewModel.monthlyBudgetLimit = bud
+                        viewModel.updateBudgetSettings(inc, bud)
                         viewModel.showEditBudgetDialog = false
                     }
                 }) {
@@ -589,7 +598,7 @@ fun TransactionRowItem(
         modifier = Modifier
             .fillMaxWidth()
             .background(SurfaceLowest, RoundedCornerShape(16.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         // Icon matching category
