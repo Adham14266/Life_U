@@ -13,73 +13,191 @@
   <img src="https://img.shields.io/badge/Jetpack%20Compose-UI-blueviolet" />
   <img src="https://img.shields.io/badge/Kotlin-1.9%2B-7F52FF?logo=kotlin&logoColor=white" />
   <img src="https://img.shields.io/badge/Room-Database-orange" />
-  <img src="https://img.shields.io/badge/Firebase-AI-FFCA28?logo=firebase&logoColor=black" />
+  <img src="https://img.shields.io/badge/Groq-AI-FF6B00" />
+  <img src="https://img.shields.io/badge/Railway-Backend-9B00FF" />
 </p>
 
 ## What it does
 
 Life U brings your student tools into one app:
 
-- AI tutor chat for study help
-- Tasks and weekly schedule
-- GPA and grade tracking
-- Budget and expense tracking
-- Notes and resource vault
-- Profile and theme settings
+- **AI Tutor** — Chat with U (Groq-powered) for study help, lecture explanations, quizzes, and mental health support
+- **Tasks & Schedule** — Manage assignments with priorities, weekly class schedule, and deadline alerts
+- **Pomodoro Timer** — Focus sessions with work/break cycles and study hour tracking
+- **GPA & Grades** — Track courses, credit hours, and calculate GPA
+- **Budget & Finances** — Log income/expenses, category breakdown, budget limits with progress indicators
+- **Notes & Resources** — Save study notes, attach files, and manage learning resources
+- **Exam Tracker** — Track upcoming exams with dates, times, and locations
+- **Profile** — University info, avatar, dark mode theme toggle
+- **Google Sign-In** — One-tap authentication via Credential Manager
+- **Forgot Password** — OTP email verification via EmailJS
 
-## Beautiful overview
+## Architecture
 
 ```mermaid
 flowchart TB
-    A[Life U] --> B[Study]
-    A --> C[Plan]
-    A --> D[Money]
-    A --> E[Profile]
+    A[Life U Android] -->|REST API + JWT| B[Backend - .NET 8]
+    B -->|EF Core| C[(PostgreSQL on Railway)]
+    A -->|Groq API| D[Groq Cloud - AI Chat]
+    A -->|EmailJS API| E[EmailJS - OTP Delivery]
+    A -->|Credential Manager| F[Google Sign-In]
+    A -->|Room DB| G[Local SQLite Cache]
 
-    B --> B1[AI Tutor]
-    B --> B2[Notes]
-    B --> B3[Resources]
+    subgraph "Features"
+        H[AI Tutor]
+        I[Tasks & Schedule]
+        J[Finances]
+        K[Grades & GPA]
+        L[Pomodoro]
+        M[Notes & Resources]
+    end
 
-    C --> C1[Tasks]
-    C --> C2[Schedule]
-    C --> C3[Pomodoro Focus]
-
-    D --> D1[Income]
-    D --> D2[Expenses]
-    D --> D3[Budget Tracking]
-
-    E --> E1[Theme]
-    E --> E2[University]
-    E --> E3[User Info]
-```
-
-```mermaid
-pie title Life U feature focus
-    "Study & AI" : 35
-    "Planning" : 25
-    "Finances" : 20
-    "Profile & Settings" : 20
+    A --- H
+    A --- I
+    A --- J
+    A --- K
+    A --- L
+    A --- M
 ```
 
 ## Tech stack
 
-- Kotlin
-- Jetpack Compose
-- Material 3
-- Room
-- Retrofit / OkHttp
-- Coil
-- Firebase AI
+| Layer | Technology |
+|-------|-----------|
+| Language | Kotlin |
+| UI | Jetpack Compose + Material 3 |
+| Local DB | Room (SQLite) |
+| Networking | Retrofit + OkHttp |
+| Image Loading | Coil |
+| AI Chat | Groq API (LLaMA 3) |
+| Authentication | Google Credential Manager + JWT |
+| OTP Email | EmailJS API |
+| Persistence | SharedPreferences (auth, onboarding) |
+| Backend | .NET 8 + PostgreSQL (Railway) |
 
-## Run locally
+## Setup
 
-1. Open the project in Android Studio.
-2. Create a `.env` file in the project root.
-3. Add `GEMINI_API_KEY` to `.env`.
-4. Run the app on an emulator or device.
+### Prerequisites
+- Android Studio (latest stable)
+- Kotlin 1.9+
+- A device or emulator (min SDK 24)
 
-## Notes
+### 1. Clone the repository
 
-- The app icon has been updated to the new Life U design.
-- Input validation is enabled across key forms.
+```bash
+git clone https://github.com/Adham14266/Life_U.git
+cd Life_U
+```
 
+### 2. Create `.env` file
+
+Create a `.env` file in the project root with the following keys:
+
+```env
+GROQ_API_KEY=gsk_your_groq_api_key
+GOOGLE_WEB_CLIENT_ID=your_web_client_id.apps.googleusercontent.com
+BACKEND_URL=https://backend-production-85b13.up.railway.app/
+EMAILJS_SERVICE_ID=service_xxxxxxx
+EMAILJS_TEMPLATE_ID=template_xxxxxxx
+EMAILJS_PUBLIC_KEY=your_emailjs_public_key
+```
+
+### 3. Place `google-services.json`
+
+Download from [Firebase Console](https://console.firebase.google.com/) and place at `app/google-services.json`.
+
+### 4. Build and run
+
+```bash
+# Debug APK
+./gradlew assembleDebug
+
+# Release APK
+./gradlew assembleRelease
+```
+
+APK output: `app/build/outputs/apk/debug/app-debug.apk`
+
+### Debug SHA-1 Fingerprint
+
+```
+05:8D:22:F3:B2:21:23:3E:69:BE:8A:B2:B1:16:7C:2F:E9:7E:08:C9
+```
+
+Register this in Firebase Console → Project Settings → Your Android App.
+
+## Backend Integration
+
+The app syncs data with a .NET 8 backend deployed on Railway:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/Auth/register` | POST | Create account |
+| `/api/Auth/login` | POST | Email/password login |
+| `/api/Auth/google-login` | POST | Google Sign-In |
+| `/api/Auth/reset-password` | POST | Reset password |
+| `/api/Auth/profile` | GET | Get user profile |
+| `/api/Auth/profile` | PUT | Update profile |
+| `/api/Tasks` | CRUD | Task management |
+| `/api/Classes` | CRUD | Class schedule |
+| `/api/Notes` | CRUD | Study notes |
+| `/api/Grades` | CRUD | Course grades |
+| `/api/Resources` | CRUD | Study resources |
+| `/api/Transactions` | CRUD | Finance transactions |
+| `/api/Subjects` | CRUD | Subject management |
+
+## Features
+
+### AI Tutor (U)
+Four chat modes powered by Groq:
+- **General** — Study help, flashcards, concept explanations
+- **Explain Lecture** — Break down complex topics with analogies
+- **Quiz** — Generate practice exams from study materials
+- **Mental Health** — Wellness companion with stress-relief techniques
+
+Supports file/image attachments for analysis.
+
+### Pomodoro Focus Timer
+- Configurable work/break durations
+- Auto-advance between focus and break sessions
+- Study hour tracking synced to profile
+- Session history
+
+### Finance Tracker
+- Income and expense logging
+- Category breakdown (Food, Housing, Transport, Books/Other)
+- Budget limit with progress indicator
+- Donut chart visualization
+
+## Project structure
+
+```text
+app/src/main/java/com/example/
+  data/
+    api/              # Retrofit API service, DTOs
+    local/            # Room database, DAOs, entities
+    repository/       # SyncedStudyRepository (local + remote)
+  ui/
+    screens/          # Compose screens (Login, Dashboard, Tutor, etc.)
+    theme/            # Material 3 theme, colors, typography
+    viewmodel/        # MainViewModel (auth, navigation, state)
+  notifications/      # Notification channels and helpers
+```
+
+## Team
+
+| Name | Role |
+|------|------|
+| Adham Sayed | Software Engineer |
+| Omar Nagi | Software Engineer |
+| Youssef Atef | Software Engineer |
+| Omar Ahmed | Software Engineer |
+| Adham Elhadad | Software Engineer |
+
+---
+
+<div align="center">
+
+### Built with ❤️ for students everywhere
+
+</div>
