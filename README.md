@@ -118,14 +118,6 @@ Download from [Firebase Console](https://console.firebase.google.com/) and place
 
 APK output: `app/build/outputs/apk/debug/app-debug.apk`
 
-### Debug SHA-1 Fingerprint
-
-```
-05:8D:22:F3:B2:21:23:3E:69:BE:8A:B2:B1:16:7C:2F:E9:7E:08:C9
-```
-
-Register this in Firebase Console → Project Settings → Your Android App.
-
 ## Backend Integration
 
 The app syncs data with a .NET 8 backend deployed on Railway:
@@ -183,16 +175,6 @@ app/src/main/java/com/example/
     viewmodel/        # MainViewModel (auth, navigation, state)
   notifications/      # Notification channels and helpers
 ```
-
-## Team
-
-| Name | Role |
-|------|------|
-| Adham Sayed | Software Engineer |
-| Omar Nagi | Software Engineer |
-| Youssef Atef | Software Engineer |
-| Omar Ahmed | Software Engineer |
-| Adham Elhadad | Software Engineer |
 
 ---
 
