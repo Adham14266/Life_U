@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "498864261088",
+    "project_id": "micro-bus-501801-p3-3835a",
+    "storage_bucket": "micro-bus-501801-p3-3835a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:498864261088:android:7ff7b83f751905d134cd85",
+        "android_client_info": {
+          "package_name": "com.aistudio.lifeu.vxtypz"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "498864261088-1gidt95m7cgcnmkucocpsfmmg1hn928p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aistudio.lifeu.vxtypz",
+            "certificate_hash": "058d22f3b221233e69be8ab2b1167c2fe97e08c9"
+          }
+        },
+        {
+          "client_id": "498864261088-mn3st9uphpmuticf8rtoo954ijqdj5se.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6pmFwkktNlk60wfrjyFqArVZhptSCcnI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "498864261088-3u8hgmn9nt4i385d5dt7rk50m2apcc9v.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
