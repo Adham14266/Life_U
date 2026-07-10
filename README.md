@@ -176,6 +176,16 @@ app/src/main/java/com/example/
   notifications/      # Notification channels and helpers
 ```
 
+## Team
+
+| Name | Role |
+|------|------|
+| Adham Sayed | Software Engineer |
+| Omar Nagi | Software Engineer |
+| Youssef Atef | Software Engineer |
+| Omar Ahmed | Software Engineer |
+| Adham Elhadad | Software Engineer |
+
 ---
 
 <div align="center">
